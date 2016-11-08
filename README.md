@@ -1,6 +1,7 @@
 # Focus
 
-Focus adds domains of your choice to /etc/hosts. It block them through comments.
+Focus adds domains of your choice to /etc/hosts. It then blocks and unblocks
+them by uncommenting and commenting those domains.
 
 ## Install
 
