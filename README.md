@@ -4,8 +4,11 @@ Focus adds domains of your choice to /etc/hosts. It block them through comments.
 
 ## Install
 
+Somewhere in your $PATH:
+
 ```
-curl https://raw.githubusercontent.com/davejachimiak/focus/master/focus > /some/where/in/your/path
+curl https://raw.githubusercontent.com/davejachimiak/focus/master/focus > focus
+chmod +x ./focus
 ```
 
 ## Usage and Commands
