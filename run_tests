@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+set -e
+
+for test in ./tests/*.sh; do
+  sh $test
+done
+
+echo passed

@@ -1,0 +1,32 @@
+<html>
+  <head>
+    <title>Focus</title>
+
+    <style>
+      iframe {
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        border: none;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+        z-index: 999999;
+      }
+    </style>
+
+    <script src="bowser.js"></script>
+  </head>
+
+  <body>
+    <iframe id="iframe"></iframe>
+
+    <script>
+      document.getElementById('iframe').src = (bowser.name + '.html');
+    </script>
+  </body>
+</html>

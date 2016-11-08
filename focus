@@ -1,0 +1,154 @@
+#!/usr/bin/env bash
+
+function help_text() {
+text="\
+USAGE: focus <command> [<arg>]
+
+COMMANDS:
+
+focus activate                 Activate focus. This uncomments domains added to focus in /etc/hosts.
+focus add <domain>             Add <domain> to focus block in /etc/hosts.
+focus deactivate               De-activate focus. This comments-out added domains in /etc/hosts.
+focus help                     Print this help text.
+focus list                     List all domains that have been added to /etc/hosts through focus.
+focus remove <domain>          Remove <domain> from focus block in /etc/hosts.
+focus status                   Tell whether focus is activated or de-activated."
+
+echo "$text"
+}
+
+function list_domains() {
+  if header_line_exists; then
+    sed -n "$(first_line),$(last_line) p" $HOSTS_FILE | cut -d ' ' -f 2
+  fi
+}
+
+function currently_deactivated() {
+  sed "$(first_line)q;d" $HOSTS_FILE | grep -q "^#"
+}
+
+function header_line_exists() {
+  grep -q \#focus\# $HOSTS_FILE
+}
+
+function header_line_number() {
+  grep -n \#focus\# $HOSTS_FILE | cut -d: -f 1
+}
+
+function first_line() {
+  expr $(header_line_number) + 1
+}
+
+function last_line() {
+  expr $(grep -n \#eofocus\# $HOSTS_FILE | cut -d: -f 1) - 1
+}
+
+IP=127.0.0.2
+HOSTS_FILE="${HOSTS_FILE:-/etc/hosts}" 
+
+if [ -z "$1" ]; then
+  help_text
+  exit 0
+fi
+
+case "$1" in
+  activate)
+    if header_line_exists; then
+      sed -i '' "$(first_line),$(last_line)s/#//" $HOSTS_FILE
+      echo activated
+    else
+      echo No domains to activate.
+    fi
+    ;;
+  deactivate)
+    if header_line_exists; then
+      if currently_deactivated; then
+        echo deactivated
+      else
+        sed -i '' "$(first_line),$(last_line)s/^/#/" $HOSTS_FILE
+        echo deactivated
+      fi
+    else
+      echo No domains to deactivate.
+    fi
+    ;;
+  add)
+    if [ -z "$2" ]; then
+      echo Domain required. For example:
+      echo
+      echo "sudo focus add <domain>"
+      exit 1
+    fi
+
+    if header_line_exists; then
+      if sed -n "$(first_line),$(last_line) p" $HOSTS_FILE | grep -q "$IP ${2}$"; then
+        (>&2 echo "$2 is already in focus.")
+        exit 1
+      else
+        if currently_deactivated; then
+          entry_prefix="#"
+        else
+          entry_prefix=""
+        fi
+
+        sed -i '' "$(expr `last_line` + 1)i\\
+        ${entry_prefix}$IP $2
+
+        " $HOSTS_FILE
+
+        list_domains
+      fi
+    else
+      hosts_text="\
+#focus#
+#$IP $2
+#eofocus#"
+    
+      echo "$hosts_text" >> $HOSTS_FILE
+    fi
+    ;;
+  remove)
+    if [ -z "$2" ]; then
+      echo Domain required. For example:
+      echo
+      echo "sudo focus remove <domain>"
+      exit 1
+    fi
+
+    if ! header_line_exists; then
+      (>&2 echo $2 not in focus.)
+      exit 1
+    fi
+
+    match_line=$(sed -n "$(first_line),$(last_line) p" $HOSTS_FILE | grep -n "$IP ${2}$" $HOSTS_FILE | cut -f1 -d:)
+
+    if [ "" == "$match_line" ]; then
+      (>&2 echo $2 not in focus.)
+      exit 1
+    else
+      if [ $(first_line) -eq $(last_line) ]; then
+        sed -i '' "$(expr `first_line` - 1),$(expr `last_line` + 1)d" $HOSTS_FILE
+      else
+        sed -i '' "${match_line}d" $HOSTS_FILE
+      fi
+
+      list_domains
+    fi
+    ;;
+  list)
+    list_domains
+    ;;
+  status)
+    if header_line_exists && ! currently_deactivated; then
+      echo activated
+    else
+      echo deactivated
+    fi
+    ;;
+  help)
+    help_text
+    ;;
+  *)
+    echo Command does not exist: "$1"
+    exit 1
+esac
